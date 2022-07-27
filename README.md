@@ -25,6 +25,9 @@ socialbrainapp/
 - `./code/preprocess.ipynb` (Jupyter Notebook with Python code to parse json files and preprocess data)
 - `./code/socialbrainapp.py` (Python module to parse json files)
 
+### Data
+- Data is not pushed to GitHub
+
 ### Required Packages
 - `pandas`
 - `numpy` 
