@@ -98,16 +98,28 @@ def get_sds(element):
     sds_df.at[element['UserId'], 'SurveyAnswer'] = element['SurveyAnswer']
 
     # recode responses
-    if element['SurveyAnswer'] == 'A little of the time':
-        sds_df.at[element['UserId'], 'Response'] = 1
-    elif element['SurveyAnswer'] == 'Some Of The Time':
-        sds_df.at[element['UserId'], 'Response'] = 2
-    elif element['SurveyAnswer'] == 'Good Part Of The Time':
-        sds_df.at[element['UserId'], 'Response'] = 3
-    elif element['SurveyAnswer'] == 'Most Of The Time':
-        sds_df.at[element['UserId'], 'Response'] = 4
-    elif element['SurveyAnswer'] == '':
-        sds_df.at[element['UserId'], 'Response'] = np.nan
+    if element['SurveyQuestion'] in [1, 3, 4, 7, 8, 9, 10, 13, 15, 20]: # regular code
+        if element['SurveyAnswer'] == 'A little of the time':
+            sds_df.at[element['UserId'], 'Response'] = 1
+        elif element['SurveyAnswer'] == 'Some of the time':
+            sds_df.at[element['UserId'], 'Response'] = 2
+        elif element['SurveyAnswer'] == 'Good part of the time':
+            sds_df.at[element['UserId'], 'Response'] = 3
+        elif element['SurveyAnswer'] == 'Most of the time':
+            sds_df.at[element['UserId'], 'Response'] = 4
+        elif element['SurveyAnswer'] == '':
+            sds_df.at[element['UserId'], 'Response'] = np.nan
+    else: # reverse code
+        if element['SurveyAnswer'] == 'A little of the time':
+            sds_df.at[element['UserId'], 'Response'] = 4
+        elif element['SurveyAnswer'] == 'Some of the time':
+            sds_df.at[element['UserId'], 'Response'] = 3
+        elif element['SurveyAnswer'] == 'Good part of the time':
+            sds_df.at[element['UserId'], 'Response'] = 2
+        elif element['SurveyAnswer'] == 'Most of the time':
+            sds_df.at[element['UserId'], 'Response'] = 1
+        elif element['SurveyAnswer'] == '':
+            sds_df.at[element['UserId'], 'Response'] = np.nan
     
     sds_df.at[element['UserId'], 'Question'] = element['Que']
 
@@ -129,26 +141,26 @@ def get_lsas(element):
 
     lsas_df = pd.DataFrame(index=[element['UserId']], 
                         columns=['SurveyName',
-                                'SurveyQuestion',
-                                'SurveyAnswer',
-                                'Response',
-                                'Question',
-                                'Year', 'Month','Day',
-                                'Hour','Minute','Second'])
+                                 'SurveyQuestion',
+                                 'SurveyAnswer',
+                                 'Response',
+                                 'Question',
+                                 'Year', 'Month','Day',
+                                 'Hour','Minute','Second'])
 
     lsas_df.at[element['UserId'], 'SurveyName'] = element['SurveyName']
     lsas_df.at[element['UserId'], 'SurveyQuestion'] = element['SurveyQuestion']
     lsas_df.at[element['UserId'], 'SurveyAnswer'] = element['SurveyAnswer']
     
-    # recode responses
+    # recode responses (no attention check)
     if element['SurveyAnswer'] == 'Never (0%)':
-        lsas_df.at[element['UserId'], 'Response'] = 1
+        lsas_df.at[element['UserId'], 'Response'] = 0
     elif element['SurveyAnswer'] == 'Occasionally (1-33%)':
-        lsas_df.at[element['UserId'], 'Response'] = 2
+        lsas_df.at[element['UserId'], 'Response'] = 1
     elif element['SurveyAnswer'] == 'Often (34-66%)':
-        lsas_df.at[element['UserId'], 'Response'] = 3
+        lsas_df.at[element['UserId'], 'Response'] = 2
     elif element['SurveyAnswer'] == 'Usually (67-100%)':
-        lsas_df.at[element['UserId'], 'Response'] = 4
+        lsas_df.at[element['UserId'], 'Response'] = 3
     elif element['SurveyAnswer'] == '':
         lsas_df.at[element['UserId'], 'Response'] = np.nan
     
@@ -175,7 +187,7 @@ def get_hardball(element):
                                columns=['Condition','OpponentNum',
                                         'Game','TeamName',
                                         'Opponent','Offer',
-                                        'Response','Accept','Reject',
+                                        'Response','Accept','Reject','Reward',
                                         'Year', 'Month','Day',
                                         'Hour','Minute','Second'])
 
@@ -187,13 +199,15 @@ def get_hardball(element):
     hardball_df.at[element['UserId'], 'Offer'] = float(element['Offer'].strip('$'))
     hardball_df.at[element['UserId'], 'Response'] = element['Response']
 
-    # recode responses with 1s and 0s
+    # recode responses with 1s and 0s and add reward if accept
     if element['Response'] == 'Accept':
         hardball_df.at[element['UserId'], 'Accept'] = 1
         hardball_df.at[element['UserId'], 'Reject'] = 0
+        hardball_df.at[element['UserId'], 'Reward'] = float(element['Offer'].strip('$'))
     else:
         hardball_df.at[element['UserId'], 'Accept'] = 0
         hardball_df.at[element['UserId'], 'Reject'] = 1
+        hardball_df.at[element['UserId'], 'Reward'] = 0.0
 
     # convert timestamp
     tmp_date = datetime.strptime(element['Timestamp'], "%Y-%m-%d %H:%M:%S.%f")
