@@ -10,3 +10,6 @@ json/*
 
 # for Mac
 *.DS_Store
+
+# .ipynb checkpoints
+*/.ipynb_checkpoints/
