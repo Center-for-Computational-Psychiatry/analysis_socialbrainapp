@@ -247,6 +247,62 @@ def get_hardball_ratings(element):
     return hardball_behav_df
 
 def get_journey(element):
-    print('Need to add')
+    char_roles = ['First', 'Second', 'Assistant', 'Newcomb', 'Hayworth', 'Neutral'] 
+    sub_id = element['UserId']
 
-    return 0
+    if any(name in element for name in ['SlideNum', 'Task', 'CharFirstX']):
+
+        # get task version info
+        if 'SlideNum' in element:
+
+            if element['SlideNum'] == 1:
+                snt_df = pd.DataFrame(index=[sub_id], 
+                                      columns=list(np.array([[char + '_name', 
+                                                              char + '_gender', 
+                                                              char + '_image'] for char in char_roles]).flatten()))
+                characters = []
+                for role in char_roles:
+                    name = element['CharName' + role]
+                    img = element['CharImage' + role].split('/')[-1]
+                    gender = element['CharGender' + role]
+                    characters.append([name, gender, img])
+                snt_df.at[sub_id, :] = list(np.array(characters).flatten())
+                task_name = 'characters'
+
+        # get task data
+        if 'Task' in element:
+
+            task = element['Task']
+            time_on = element['Timestamp']
+
+            if 'Decision' in task: 
+                snt_df = pd.DataFrame(index=[sub_id], columns=['decision_num','decision'],
+                                      data=np.array([task, element['JourneyAnswer']]).reshape(1,-1))
+                task_name = 'decisions'
+
+            elif ('Attention' in task) or ('Memory' in task):
+                snt_df = pd.DataFrame(index=[sub_id], columns=['question_num','answer'],
+                                      data=np.array([task, element['Option']]).reshape(1,-1))
+                task_name = 'memory' 
+
+        # get dots data
+        elif 'CharFirstX' in element:
+
+            dots = list(np.array([[element['Char'+role+'X'], element['Char'+role+'Y']] for role in char_roles]).flatten())
+            snt_df = pd.DataFrame(index=[sub_id], columns=list(np.array([['dots_' + char + '_affil', 'dots_' + char + '_power'] for char in char_roles]).flatten()),
+                                  data=dots)
+            task_name = 'dots'
+
+        # convert timestamp
+        tmp_date = datetime.strptime(element['Timestamp'], "%Y-%m-%d %H:%M:%S.%f")
+        snt_df.at[element['UserId'], 'Datetime'] = element['Timestamp']
+        snt_df.at[element['UserId'], 'Year'] = int(tmp_date.year)
+        snt_df.at[element['UserId'], 'Month'] = int(tmp_date.month)
+        snt_df.at[element['UserId'], 'Day'] = int(tmp_date.day)
+        snt_df.at[element['UserId'], 'Hour'] = int(tmp_date.hour)
+        snt_df.at[element['UserId'], 'Minute'] = int(tmp_date.minute)
+        snt_df.at[element['UserId'], 'Second'] = int(tmp_date.second)
+
+        output = [task_name, snt_df]
+
+    return output
