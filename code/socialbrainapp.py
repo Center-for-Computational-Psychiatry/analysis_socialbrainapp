@@ -247,12 +247,11 @@ def get_hardball_ratings(element):
     return hardball_behav_df
 
 def get_journey(element):
-
     char_roles = ['First', 'Second', 'Assistant', 'Newcomb', 'Hayworth', 'Neutral'] 
     sub_id = element['UserId']
-    
+
     if any(name in element for name in ['SlideNum', 'Task', 'CharFirstX']):
-        
+
         # get task version info
         if 'SlideNum' in element:
 
@@ -305,5 +304,5 @@ def get_journey(element):
         snt_df.at[element['UserId'], 'Second'] = int(tmp_date.second)
 
         output = [task_name, snt_df]
-        
+
     return output
