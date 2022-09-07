@@ -7,3 +7,9 @@ json/*
 
 # Do not push pycache to repo
 */__pycache__/
+
+# for Mac
+*.DS_Store
+
+# .ipynb checkpoints
+*/.ipynb_checkpoints/
