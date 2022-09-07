@@ -1,6 +1,8 @@
 # Do not push data to repo 
 data/*
 json/*
+modeling/*
+code/*.csv
 
 # Do not push symlinks to repo
 *.URL

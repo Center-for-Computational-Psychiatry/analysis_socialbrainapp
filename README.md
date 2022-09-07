@@ -8,15 +8,23 @@ socialbrainapp/
 │  ├─ preprocess.ipynb
 │  ├─ socialbrainapp.py
 ├─ data/
-│  ├─ Demographics-data.csv
-│  ├─ Hardball-data.csv
-│  ├─ HardballSubjectiveRatings-data.csv
-│  ├─ LSAS-data.csv
-│  ├─ OCI-data.csv
-│  ├─ SDS-data.csv
-│  ├─ SocialBrainAppData.pickle
+│  ├─ Demographics-data-Master.csv
+│  ├─ Hardball-data-Master.csv
+│  ├─ Journey-data-Master.csv
+│  ├─ runs/
+│  │  ├─ Demographics-data-*.csv
+│  │  ├─ Hardball-data-*.csv
+│  │  ├─ HardballSubjectiveRatings-data-*.csv
+│  │  ├─ SNT-data-*.csv
+│  │  ├─ SNT-memory-data-*.csv
+│  │  ├─ SNT-ver-data-*.csv
+│  │  ├─ LSAS-data-*.csv
+│  │  ├─ OCI-data-*.csv
+│  │  ├─ SDS-data-*.csv
+│  │  ├─ SocialBrainAppData-*.pickle
 ├─ json/
 │  ├─ *.json
+├─ modeling/
 ├─ .gitignore
 ├─ README.md
 ```
