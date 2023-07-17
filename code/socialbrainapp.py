@@ -1,5 +1,154 @@
 import pandas as pd, numpy as np
 from datetime import datetime
+from itertools import combinations
+
+def get_withdrawn_ids(list1, list2):
+    matching = []
+    nonmatch1 = []
+    nonmatch2 = []
+    
+    for item in list1:
+        if item in list2:
+            matching.append(item)
+        else:
+            nonmatch1.append(item)
+            
+    for item in list2:
+        if item not in list1:
+            nonmatch2.append(item)
+            
+    return list(np.unique(matching)), list(np.unique(nonmatch1)), list(np.unique(nonmatch2))
+
+def get_hardball_blocks(df):
+    '''
+    DF is subject specific and should be contain the following columns:
+    ['OpponentNum','Condition','Year','Month','Day','Hour','Minute','Second']
+    '''
+
+    # Create a new column "BlockID" filled with NaNs
+    df['BlockID'] = np.nan
+
+    # Iterate over rows
+    curr_block_id = 0
+    for i, row in df.iterrows():
+
+        # Check if the current row starts a new session
+        if row['OpponentNum'] == 1:
+
+            # Iterate over the next 30 rows
+            this_block_first_opp_count = []
+            this_block_first_idx_count = []
+            this_block_first_cond_count = []
+            end_current_block = False
+            for j_idx, j in enumerate(range(i, i+30)):
+                # Check if the row exists
+                if j < len(df):
+
+                    # check that OpponentNum is counting up
+                    if int(j_idx+1) == int(df.loc[j,'OpponentNum']):
+                        this_block_first_idx_count += [j]
+                        this_block_first_opp_count += [df.loc[j,'OpponentNum']]
+                        this_block_first_cond_count += [df.loc[j,'Condition']]
+                    else:
+                        end_current_block = True
+                    
+                    if len(this_block_first_idx_count) == 30:
+                        end_current_block = True
+                    
+                    if end_current_block:
+                        if len(this_block_first_idx_count) == 30 and np.sum(this_block_first_opp_count)==465 and np.sum([1 for x in this_block_first_cond_count if x==this_block_first_cond_count[0]]):
+                            curr_block_id += 1
+                            df.loc[this_block_first_idx_count,'BlockID'] = curr_block_id
+    return df
+
+def get_hardball_sessions(df):
+    '''
+    DF is subject specific and should be contain the following columns:
+    ['OpponentNum','Condition','BlockID','Year','Month','Day','Hour','Minute','Second']
+    '''
+    df = df[~np.isnan(df.BlockID)]
+
+    # create a dictionary that groups the block_id values by condition_id
+    cond_block_dict = {}
+    for cond_id, block_ids in df.groupby("Condition")["BlockID"]:
+        cond_block_dict[cond_id] = set(block_ids)
+
+    # create a list of all possible pairs of condition ids
+    cond_pairs = list(combinations(cond_block_dict.keys(), 2))
+
+    # create a dictionary to store the time differences for each pair of block_ids
+    time_diff_dict = {}
+
+    # loop through all pairs of condition ids
+    for cond_pair in cond_pairs:
+        # get the block_ids for each condition id
+        block_ids1 = cond_block_dict[cond_pair[0]]
+        block_ids2 = cond_block_dict[cond_pair[1]]
+        
+        # create a list of all possible pairs of block_ids
+        block_pairs = list(combinations(block_ids1.union(block_ids2), 2))
+        
+        # loop through all pairs of block_ids
+        for block_pair in block_pairs:
+            # get the rows corresponding to the two block_ids
+            rows1 = df[(df["BlockID"] == int(block_pair[0]))]
+            rows2 = df[(df["BlockID"] == int(block_pair[1]))]
+            
+            # get the earliest and latest timestamps for the two blocks
+            row2_times = rows2[["Year", "Month", "Day", "Hour", "Minute", "Second"]].apply(lambda x: pd.Timestamp(*x), axis=1)
+            row1_times = rows1[["Year", "Month", "Day", "Hour", "Minute", "Second"]].apply(lambda x: pd.Timestamp(*x), axis=1)
+
+            if row1_times.mean() > row2_times.mean(): # row 1 later
+                earliest_timestamp = min(row2_times)
+                latest_timestamp = max(row1_times)
+            elif row1_times.mean() < row2_times.mean(): # row 1 earlier
+                earliest_timestamp = min(row1_times)
+                latest_timestamp = max(row2_times)
+            
+            # calculate the time difference between the two blocks
+            time_diff = (latest_timestamp - earliest_timestamp).total_seconds()
+            
+            # store the time difference in the dictionary
+            time_diff_dict[block_pair] = time_diff
+
+    # create a list of all possible pairs of block_ids
+    block_pairs = list(combinations(set(df["BlockID"]), 2))
+
+    # create a dictionary to store the session_id for each block_id
+    session_id_dict = {}
+    session_count = 0
+
+    # loop through all pairs of block_ids
+    for block_pair in block_pairs:
+        # get the condition ids for each block_id
+        cond_ids1 = set(df[df["BlockID"] == block_pair[0]]["Condition"])
+        cond_ids2 = set(df[df["BlockID"] == block_pair[1]]["Condition"])
+        
+        # check if the two block_ids correspond to two unique condition_ids
+        if len(cond_ids1) == 1 and len(cond_ids2) == 1 and len(cond_ids1.union(cond_ids2)) == 2:
+            # calculate the time difference between the two blocks
+            time_diff = time_diff_dict[block_pair]
+            
+            # get dict of time_diff for other pairs
+            other_time_diffs = {i:time_diff_dict[i] for i in time_diff_dict if ((block_pair[0] in i) or (block_pair[1] in i)) and (i!=block_pair)}
+
+            # check if the time difference is minimal
+            if other_time_diffs:
+                if time_diff < min([time_diff_dict[b] for b in other_time_diffs]):
+                    session_count += 1
+                    # assign a new session_id to the two block_ids
+                    session_id_dict[np.round(block_pair[0],1)] = session_count
+                    session_id_dict[np.round(block_pair[1],1)] = session_count
+            else:
+                session_count += 1
+                # assign a new session_id to the two block_ids
+                session_id_dict[np.round(block_pair[0],1)] = session_count
+                session_id_dict[np.round(block_pair[1],1)] = session_count
+                
+    #create a new column called session_id in the dataframe
+    df['SessionID'] = df['BlockID'].map(session_id_dict)
+
+    return df
 
 def get_demographics(element):
     assert type(element) is dict, 'Input should be dictionary'
